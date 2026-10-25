@@ -14,11 +14,18 @@ unchanged. On Python 3.11 and newer, its package metadata requires
 tests cover context reuse, non-blocking contention between threads and processes,
 and named locks. No `ReadWriteLock` or `SoftReadWriteLock` API is used.
 
-Python versions below 3.11 retain the upstream `filelock~=3.0` dependency because
-filelock 4 requires Python 3.11. **That legacy branch is not security-remediated**:
-it may resolve an advisory-affected filelock release. Applications requiring the
-fixed dependency must run Python 3.11 or newer and regenerate their dependency
-locks. This fork is consumed by immutable Git commit; it is not a PyPI release.
+Python 3.10 uses the exact compatibility pin `filelock==3.20.3`, rather than an
+unbounded 3.x range. That version contains the earlier TOCTOU fixes and predates
+the reader/writer-lock feature affected by CVE-2026-112940. It is outside the
+affected ranges of all eight filelock advisories published in the GitHub Advisory
+Database when checked on 2026-10-25. It is a compatibility pin, not a backport of
+filelock 4 or a guarantee against future findings. See [the recorded advisory
+ranges](docs/filelock-compatibility.md).
+
+This Thalovant compatibility fork requires Python 3.10 or newer. It does not
+retain upstream's older Python classifiers or claim that Python 3.5-3.9 can use
+these dependencies. Consumers must regenerate their dependency locks. This fork
+is consumed by immutable Git commit; it is not a PyPI release.
 
 ## Example
 

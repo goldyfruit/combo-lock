@@ -6,6 +6,7 @@ import multiprocessing
 from pathlib import Path
 
 from packaging.requirements import Requirement
+from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 import pytest
 
@@ -75,7 +76,7 @@ def test_named_lock_reacquires_and_preserves_requested_permissions(tmp_path, mon
             assert Path(lock.path).stat().st_mode & 0o666 == 0o666
 
 
-@pytest.mark.parametrize("python_version", ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"])
+@pytest.mark.parametrize("python_version", ["3.10", "3.11", "3.12", "3.13", "3.14"])
 def test_installed_metadata_selects_one_explicit_filelock_branch(python_version):
     requirements = [Requirement(value) for value in metadata("combo-lock").get_all("Requires-Dist")]
     selected = [value for value in requirements if value.name == "filelock"
@@ -89,5 +90,15 @@ def test_installed_metadata_selects_one_explicit_filelock_branch(python_version)
         assert "3.32.7" not in requirement.specifier
         assert "5.0" not in requirement.specifier
     else:
-        assert "3.32.7" in requirement.specifier
+        assert "3.20.3" in requirement.specifier
+        assert "3.20.2" not in requirement.specifier
+        assert "3.20.4" not in requirement.specifier
+        assert "3.32.7" not in requirement.specifier
         assert "4.2.1" not in requirement.specifier
+
+
+def test_installed_metadata_requires_supported_python():
+    supported = SpecifierSet(metadata("combo-lock")["Requires-Python"])
+    assert "3.10" in supported
+    assert "3.14" in supported
+    assert "3.9" not in supported
