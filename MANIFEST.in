@@ -1,4 +1,5 @@
 include LICENSE.md
 include requirements.txt
 include requirements-old.txt
-include test/test.conf
+recursive-include tests *.py
+recursive-include docs *.md
