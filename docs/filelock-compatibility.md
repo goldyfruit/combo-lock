@@ -1,3 +1,5 @@
+Last Edit: Codex - 2026-10-25 - Motive: Record primary advisory ranges and verified dependency selection.
+
 # Filelock Compatibility Evidence
 
 Checked on 2026-10-25 against the official GitHub Advisory Database endpoint
@@ -25,3 +27,5 @@ exception or resolver-only override is used. Future advisories can invalidate a
 pin and must still fail the consuming application's normal security checks.
 Classic ComboLock and NamedLock calls remain unchanged; the compatibility suite
 checks real process/thread exclusion, context reuse and requested permissions.
+See [ComboLock.acquire and NamedLock](../combo_lock/combo_lock.py) and the
+[compatibility tests](../tests/test_filelock_compatibility.py).

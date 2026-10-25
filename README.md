@@ -1,3 +1,5 @@
+Last Edit: Codex - 2026-10-25 - Motive: Document the tested Thalovant dependency compatibility fork.
+
 # Combo Lock
 
 The combo-lock is a combination of a process lock and a thread lock. Usable in cases both multiple threads and multiple processes are sharing the same resource such as a file in the file system.

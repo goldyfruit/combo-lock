@@ -3,6 +3,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from importlib.metadata import metadata
 import multiprocessing
+from multiprocessing.queues import Queue
 from pathlib import Path
 
 from packaging.requirements import Requirement
@@ -13,7 +14,8 @@ import pytest
 from combo_lock import ComboLock, NamedLock
 
 
-def _contend(path, result):
+def _contend(path: str, result: Queue) -> None:
+    """Attempt acquisition in a child process and report only the boolean result."""
     lock = ComboLock(path)
     acquired = lock.acquire(blocking=False)
     result.put(acquired)
@@ -21,14 +23,16 @@ def _contend(path, result):
         lock.release()
 
 
-def test_context_releases_and_reacquires(tmp_path):
+def test_context_releases_and_reacquires(tmp_path: Path) -> None:
+    """Context exit must release both underlying locks for subsequent use."""
     lock = ComboLock(tmp_path / "reuse.lock")
     for _ in range(2):
         with lock:
             assert Path(lock.path).is_file()
 
 
-def test_nonblocking_thread_contention(tmp_path):
+def test_nonblocking_thread_contention(tmp_path: Path) -> None:
+    """Another thread must not acquire the same held ComboLock."""
     lock = ComboLock(tmp_path / "thread.lock")
     with lock, ThreadPoolExecutor(max_workers=1) as pool:
         assert pool.submit(lock.acquire, False).result(timeout=2) is False
@@ -36,7 +40,8 @@ def test_nonblocking_thread_contention(tmp_path):
     lock.release()
 
 
-def test_nonblocking_independent_instances(tmp_path):
+def test_nonblocking_independent_instances(tmp_path: Path) -> None:
+    """Separate instances must still contend on their common file lock."""
     left = ComboLock(tmp_path / "instances.lock")
     right = ComboLock(tmp_path / "instances.lock")
     with left:
@@ -45,7 +50,8 @@ def test_nonblocking_independent_instances(tmp_path):
     right.release()
 
 
-def test_nonblocking_process_contention(tmp_path):
+def test_nonblocking_process_contention(tmp_path: Path) -> None:
+    """A spawned process must respect the parent's held file lock."""
     context = multiprocessing.get_context("spawn")
     path = str(tmp_path / "process.lock")
     results = context.Queue()
@@ -67,7 +73,10 @@ def test_nonblocking_process_contention(tmp_path):
         results.join_thread()
 
 
-def test_named_lock_reacquires_and_preserves_requested_permissions(tmp_path, monkeypatch):
+def test_named_lock_reacquires_and_preserves_requested_permissions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """NamedLock must retain its requested mode and be reusable."""
     monkeypatch.setattr("combo_lock.combo_lock.get_ram_directory", lambda _: str(tmp_path))
     lock = NamedLock("compatibility/scoped")
     for _ in range(2):
@@ -77,7 +86,8 @@ def test_named_lock_reacquires_and_preserves_requested_permissions(tmp_path, mon
 
 
 @pytest.mark.parametrize("python_version", ["3.10", "3.11", "3.12", "3.13", "3.14"])
-def test_installed_metadata_selects_one_explicit_filelock_branch(python_version):
+def test_installed_metadata_selects_one_explicit_filelock_branch(python_version: str) -> None:
+    """Installed wheel requirements must select exactly one safe dependency range."""
     requirements = [Requirement(value) for value in metadata("combo-lock").get_all("Requires-Dist")]
     selected = [value for value in requirements if value.name == "filelock"
                 and value.marker.evaluate({"python_version": python_version})]
@@ -97,7 +107,8 @@ def test_installed_metadata_selects_one_explicit_filelock_branch(python_version)
         assert "4.2.1" not in requirement.specifier
 
 
-def test_installed_metadata_requires_supported_python():
+def test_installed_metadata_requires_supported_python() -> None:
+    """The fork must not advertise Python versions its dependencies cannot use."""
     supported = SpecifierSet(metadata("combo-lock")["Requires-Python"])
     assert "3.10" in supported
     assert "3.14" in supported
