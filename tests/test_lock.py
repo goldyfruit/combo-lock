@@ -1,7 +1,8 @@
 import os
+import sys
 from os.path import isfile
 from subprocess import Popen
-from tempfile import mktemp, mkstemp
+from tempfile import mktemp, mkstemp, TemporaryDirectory
 from threading import Thread
 import time
 from unittest import TestCase
@@ -22,13 +23,11 @@ class TestComboLock(TestCase):
         call_order = []
 
         def thread_a():
-            nonlocal call_order
             with lock:
                 time.sleep(0.2)
                 call_order.append('a')
 
         def thread_b():
-            nonlocal call_order
             time.sleep(0.1)
             with lock:
                 call_order.append('b')
@@ -44,18 +43,14 @@ class TestComboLock(TestCase):
 
     def test_process_lock(self):
         test_process = os.path.join(os.path.dirname(__file__), 'process.py')
-        test_output = '/tmp/test_process.lock'
-
-        # Run processes
-        a = Popen(['python3', test_process, 'a', self.lock_file, '0', '0.2'])
-        b = Popen(['python3', test_process, 'b', self.lock_file, '0.1', '0'])
-        a.wait()
-        b.wait()
-
-        # Read result
-        with open(test_output, 'r') as f:
-            result = f.read()
-        os.remove(test_output)
+        with TemporaryDirectory() as directory:
+            test_output = os.path.join(directory, 'process-result.txt')
+            a = Popen([sys.executable, test_process, 'a', self.lock_file, '0', '0.2', test_output])
+            b = Popen([sys.executable, test_process, 'b', self.lock_file, '0.1', '0', test_output])
+            self.assertEqual(a.wait(timeout=10), 0)
+            self.assertEqual(b.wait(timeout=10), 0)
+            with open(test_output, 'r') as f:
+                result = f.read()
 
         # Verify that the written order is correct
         self.assertEqual(result, 'ab')
@@ -82,6 +77,8 @@ class TestComboLock(TestCase):
         lock = ComboLock(lock_file)
         with lock:
             self.assertTrue(isfile(lock.path))
+        if isfile(lock.path):
+            os.remove(lock.path)
         self.assertFalse(isfile(lock.path))
         with lock:
             self.assertTrue(isfile(lock.path))

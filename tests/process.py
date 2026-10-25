@@ -2,7 +2,7 @@
 Test process run by the test case. The file will
 
 Expects three arguments
- identifier lock_file sleep_1 sleep_2
+ identifier lock_file sleep_1 sleep_2 output_file
 
  identifier: process identifier to be written to the out file
  lock_file: is the path to the lockfile to use
@@ -25,5 +25,5 @@ if __name__ == '__main__':
     time.sleep(sleep_1)
     with lock:
         time.sleep(sleep_2)
-        with open('/tmp/test_process.lock', 'a') as f:
+        with open(sys.argv[5], 'a') as f:
             f.write(identifier)

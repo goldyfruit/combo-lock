@@ -6,6 +6,20 @@ The module utilizes the FileLock from [filelock](https://pypi.org/project/filelo
 
 The FileLock uses a filesystem lock so the initialization of the class requires a path for the lock file.
 
+## Thalovant Compatibility Fork
+
+This fork builds on upstream 0.3.1 and keeps the classic `FileLock` implementation
+unchanged. On Python 3.11 and newer, its package metadata requires
+`filelock>=4.2.1,<5`, which includes the fix for CVE-2026-112940. The compatibility
+tests cover context reuse, non-blocking contention between threads and processes,
+and named locks. No `ReadWriteLock` or `SoftReadWriteLock` API is used.
+
+Python versions below 3.11 retain the upstream `filelock~=3.0` dependency because
+filelock 4 requires Python 3.11. **That legacy branch is not security-remediated**:
+it may resolve an advisory-affected filelock release. Applications requiring the
+fixed dependency must run Python 3.11 or newer and regenerate their dependency
+locks. This fork is consumed by immutable Git commit; it is not a PyPI release.
+
 ## Example
 
 ```python
